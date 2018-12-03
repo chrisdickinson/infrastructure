@@ -68,3 +68,14 @@ resource "cloudflare_record" "neversawus-mx-4" {
   priority = 5
   type     = "MX"
 }
+
+resource "aws_s3_bucket" "bucket-site" {
+  bucket = "neversawus-site"
+  acl    = "public-read"
+
+  website {
+    index_document = "index.html"
+    error_document = "error.html"
+  }
+}
+
