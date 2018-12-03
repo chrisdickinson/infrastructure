@@ -12,7 +12,7 @@ resource "cloudflare_record" "unbearablecomics-apex" {
 
 resource "cloudflare_record" "unbearablecomics-www-cname" {
   domain  = "${var.domain}"
-  value   = "${var.domain}"
+  value   = "www.unbearablecomics.com.s3-website-us-west-2.amazonaws.com"
   name    = "www"
   type    = "CNAME"
   ttl     = "1"
@@ -20,7 +20,7 @@ resource "cloudflare_record" "unbearablecomics-www-cname" {
 }
 
 resource "aws_s3_bucket" "bucket-site" {
-  bucket = "unbearablecomics-site"
+  bucket = "www.unbearablecomics.com"
   acl    = "public-read"
 
   website {
