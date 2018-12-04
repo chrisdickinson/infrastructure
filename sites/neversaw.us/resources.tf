@@ -74,7 +74,7 @@ resource "cloudflare_record" "neversawus-mx-4" {
 }
 
 resource "aws_s3_bucket" "bucket-site" {
-  bucket = "neversawus-site"
+  bucket = "www.neversaw.us"
   acl    = "public-read"
 
   website {
