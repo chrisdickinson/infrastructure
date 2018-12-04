@@ -37,5 +37,19 @@ resource "aws_s3_bucket" "bucket-site" {
 resource "cloudflare_zone_settings_override" "settings" {
   name = "${var.domain}"
   settings {
+    always_use_https = "on"
+  }
+}
+
+resource "cloudflare_page_rule" "redirect_non_www" {
+  zone     = "${var.domain}"
+  target   = "${var.domain}/*"
+  priority = 1
+
+  actions = {
+    forwarding_url = {
+      url          = "https://www.${var.domain}/*"
+      status_code  = 301
+    }
   }
 }
