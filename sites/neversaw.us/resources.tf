@@ -2,6 +2,10 @@ variable domain {
   default = "neversaw.us"
 }
 
+resource "cloudflare_zone" "neversawus" {
+  zone = "${var.domain}"
+}
+
 resource "cloudflare_record" "neversawus-apex" {
   domain  = "${var.domain}"
   name    = "${var.domain}"
