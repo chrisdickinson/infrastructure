@@ -48,7 +48,7 @@ resource "cloudflare_page_rule" "redirect_non_www" {
 
   actions = {
     forwarding_url = {
-      url          = "https://www.${var.domain}/*"
+      url          = "https://www.${var.domain}/$1"
       status_code  = 301
     }
   }
