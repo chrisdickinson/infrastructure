@@ -1,6 +1,11 @@
 variable domain {
   default = "unbearablecomics.com"
 }
+
+resource "cloudflare_zone" "unbearablecomics" {
+  zone = "${var.domain}"
+}
+
 resource "cloudflare_record" "unbearablecomics-apex" {
   domain  = "${var.domain}"
   name    = "${var.domain}"
@@ -26,5 +31,11 @@ resource "aws_s3_bucket" "bucket-site" {
   website {
     index_document = "index.html"
     error_document = "error.html"
+  }
+}
+
+resource "cloudflare_zone_settings_override" "settings" {
+  name = "${var.domain}"
+  settings {
   }
 }
