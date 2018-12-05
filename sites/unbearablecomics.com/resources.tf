@@ -6,11 +6,11 @@ resource "cloudflare_zone" "unbearablecomics" {
   zone = "${var.domain}"
 }
 
-resource "cloudflare_record" "unbearablecomics-apex" {
+resource "cloudflare_record" "unbearablecomics-cname-apex" {
   domain  = "${var.domain}"
   name    = "${var.domain}"
-  value   = "192.241.193.154"
-  type    = "A"
+  value   = "www.unbearablecomics.com.s3-website-us-west-2.amazonaws.com"
+  type    = "CNAME"
   ttl     = "1"
   proxied = true
 }

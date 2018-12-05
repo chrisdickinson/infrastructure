@@ -6,11 +6,11 @@ resource "cloudflare_zone" "neversawus" {
   zone = "${var.domain}"
 }
 
-resource "cloudflare_record" "neversawus-apex" {
+resource "cloudflare_record" "neversawus-cname-apex" {
   domain  = "${var.domain}"
   name    = "${var.domain}"
-  value   = "192.241.193.154"
-  type    = "A"
+  value   = "www.neversaw.us.s3-website-us-west-2.amazonaws.com"
+  type    = "CNAME"
   ttl     = "1"
   proxied = true
 }
