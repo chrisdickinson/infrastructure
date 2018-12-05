@@ -1,0 +1,39 @@
+{
+  "variables": {
+    "github": "{{env `GITHUB_USERNAME` }}",
+    "aws_access_key": "{{env `AWS_ACCESS_KEY` }}",
+    "aws_secret_key": "{{env `AWS_SECRET_KEY` }}",
+    "ami": "ami-09bfeda7337019518",
+    "dir": "/tmp/bootstrap"
+  },
+  "builders": [{
+    "type": "amazon-ebs",
+    "subnet_filter": {
+      "filters": {
+        "tag:Name": "Public subnet"
+      },
+      "most_free": true,
+      "random": false
+    },
+    "access_key": "{{user `aws_access_key`}}",
+    "secret_key": "{{user `aws_secret_key`}}",
+    "region": "us-west-2",
+    "source_ami": "{{user `ami`}}",
+    "instance_type": "t3.nano",
+    "ssh_username": "ubuntu",
+    "ami_name": "bootstrap {{timestamp}}",
+    "associate_public_ip_address": "true",
+    "ami_virtualization_type": "hvm"
+  }],
+  "provisioners": [{
+    "type": "shell",
+    "inline": [
+      "curl -sL https://github.com/{{user `github`}}.keys >> /home/ubuntu/.ssh/authorized_keys"
+    ]
+  }, {
+    "type": "shell",
+    "script": "./install.sh",
+    "execute_command": "sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
+  }, {
+  }]
+}
