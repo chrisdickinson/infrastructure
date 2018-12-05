@@ -2,6 +2,14 @@ variable domain {
   default = "neversaw.us"
 }
 
+# zone-wide settings.
+resource "cloudflare_zone_settings_override" "settings" {
+  name = "${var.domain}"
+  settings {
+    always_use_https = "on"
+  }
+}
+
 resource "cloudflare_zone" "neversawus" {
   zone = "${var.domain}"
 }
@@ -73,33 +81,6 @@ resource "cloudflare_record" "neversawus-mx-4" {
   type     = "MX"
 }
 
-resource "aws_s3_bucket" "bucket-site" {
-  bucket = "www.neversaw.us"
-  acl    = "public-read"
-
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
-  }
-}
-
-resource "aws_s3_bucket" "cloudflare-workers" {
-  bucket = "cloudflare-workers"
-  acl    = "private"
-}
-
-data "aws_s3_bucket_object" "cloudflare_worker_script" {
-  bucket = "${aws_s3_bucket.cloudflare-workers.id}"
-  key = "neversawus.js"
-}
-
-resource "cloudflare_zone_settings_override" "settings" {
-  name = "${var.domain}"
-  settings {
-    always_use_https = "on"
-  }
-}
-
 resource "cloudflare_page_rule" "redirect_non_www" {
   zone     = "${var.domain}"
   target   = "${var.domain}/*"
@@ -110,42 +91,5 @@ resource "cloudflare_page_rule" "redirect_non_www" {
       url          = "https://www.${var.domain}/$1"
       status_code  = 301
     }
-  }
-}
-
-resource "cloudflare_worker_script" "neversawus_worker" {
-  zone = "${var.domain}"
-  content = "${data.aws_s3_bucket_object.cloudflare_worker_script.body}"
-}
-
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  tags {
-    "Name" = "default"
-  }
-}
-
-resource "aws_subnet" "main" {
-  cidr_block = "10.0.0.0/18"
-  vpc_id     = "${aws_vpc.main.id}"
-  tags {
-    "Name" = "Public subnet"
-  }
-}
-
-resource "aws_instance" "irc" {
-  ami = "ami-09bfeda7337019518"
-
-  subnet_id         = "${aws_subnet.main.id}"
-  availability_zone = "us-west-2a"
-  ebs_optimized     = true
-  instance_type     = "t3.nano"
-  monitoring        = false
-  key_name          = "chris-personal-west.pem"
-
-  associate_public_ip_address = true
-
-  tags {
-    "Name" = "neversawus-znc"
   }
 }
