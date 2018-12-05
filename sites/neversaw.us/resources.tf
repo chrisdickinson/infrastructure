@@ -88,6 +88,11 @@ resource "aws_s3_bucket" "cloudflare-workers" {
   acl    = "private"
 }
 
+data "aws_s3_bucket_object" "cloudflare_worker_script" {
+  bucket = "${aws_s3_bucket.cloudflare-workers.id}"
+  key = "neversawus.js"
+}
+
 resource "cloudflare_zone_settings_override" "settings" {
   name = "${var.domain}"
   settings {
@@ -106,6 +111,11 @@ resource "cloudflare_page_rule" "redirect_non_www" {
       status_code  = 301
     }
   }
+}
+
+resource "cloudflare_worker_script" "neversawus_worker" {
+  zone = "${var.domain}"
+  content = "${data.aws_s3_bucket_object.cloudflare_worker_script.body}"
 }
 
 resource "aws_vpc" "main" {
