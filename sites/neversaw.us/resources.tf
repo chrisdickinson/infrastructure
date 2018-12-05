@@ -118,7 +118,7 @@ resource "aws_subnet" "main" {
   }
 }
 
-resource "aws_instance" "instance" {
+resource "aws_instance" "irc" {
   ami = "ami-09bfeda7337019518"
 
   subnet_id         = "${aws_subnet.main.id}"
