@@ -83,6 +83,11 @@ resource "aws_s3_bucket" "bucket-site" {
   }
 }
 
+resource "aws_s3_bucket" "cloudflare-workers" {
+  bucket = "cloudflare-workers"
+  acl    = "private"
+}
+
 resource "cloudflare_zone_settings_override" "settings" {
   name = "${var.domain}"
   settings {
