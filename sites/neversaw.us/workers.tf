@@ -14,6 +14,11 @@ resource "aws_s3_bucket" "bucket-site" {
   }
 }
 
+resource "aws_s3_bucket" "bucket-apocrypha" {
+  bucket = "apocrypha.${var.domain}"
+  acl    = "private"
+}
+
 # This bucket stores a single, well-known object. The object contains the
 # latest build of the cloudflare worker.
 resource "aws_s3_bucket" "cloudflare-workers" {
