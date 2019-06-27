@@ -28,19 +28,20 @@ resource "aws_s3_bucket" "cloudflare-workers" {
 
 # We pull in that well-known object here.
 data "aws_s3_bucket_object" "cloudflare_worker_script" {
-  bucket = "${aws_s3_bucket.cloudflare-workers.id}"
+  bucket = aws_s3_bucket.cloudflare-workers.id
   key    = "neversawus.js"
 }
 
 # ...and give it to Cloudflare.
 resource "cloudflare_worker_script" "neversawus_worker" {
-  zone    = "${var.domain}"
-  content = "${data.aws_s3_bucket_object.cloudflare_worker_script.body}"
+  zone    = var.domain
+  content = data.aws_s3_bucket_object.cloudflare_worker_script.body
 }
 
 resource "cloudflare_worker_route" "neversawus_worker_route" {
-  zone    = "${var.domain}"
-  pattern = "www.${var.domain}/*"
-  enabled = true
-  depends_on = ["cloudflare_worker_script.neversawus_worker"]
+  zone       = var.domain
+  pattern    = "www.${var.domain}/*"
+  enabled    = true
+  depends_on = [cloudflare_worker_script.neversawus_worker]
 }
+

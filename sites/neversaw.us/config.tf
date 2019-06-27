@@ -1,4 +1,4 @@
-variable ttl {
+variable "ttl" {
   default = 30
 }
 
@@ -9,3 +9,4 @@ provider "cloudflare" {
 provider "aws" {
   region = "us-west-2"
 }
+

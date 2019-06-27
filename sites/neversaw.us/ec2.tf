@@ -1,14 +1,14 @@
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
-  tags {
+  tags = {
     "Name" = "default"
   }
 }
 
 resource "aws_subnet" "main" {
   cidr_block = "10.0.0.0/18"
-  vpc_id     = "${aws_vpc.main.id}"
-  tags {
+  vpc_id     = aws_vpc.main.id
+  tags = {
     "Name" = "Public subnet"
   }
 }
@@ -16,7 +16,7 @@ resource "aws_subnet" "main" {
 resource "aws_instance" "irc" {
   ami = "ami-09bfeda7337019518"
 
-  subnet_id         = "${aws_subnet.main.id}"
+  subnet_id         = aws_subnet.main.id
   availability_zone = "us-west-2a"
   ebs_optimized     = true
   instance_type     = "t3.nano"
@@ -25,7 +25,7 @@ resource "aws_instance" "irc" {
 
   associate_public_ip_address = true
 
-  tags {
+  tags = {
     "Name" = "neversawus-znc"
   }
 }
