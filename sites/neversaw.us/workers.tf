@@ -19,11 +19,74 @@ resource "aws_s3_bucket" "bucket-apocrypha" {
   acl    = "private"
 }
 
+resource "aws_s3_bucket" "bucket-raw" {
+  bucket = "raw.${var.domain}"
+  acl    = "private"
+}
+
+# - - - - - - aws lambda (take markdown from "raw" and render to "site")
+
+resource "aws_iam_role" "iam_for_lambda" {
+  name = "iam_for_lambda"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_permission" "allow_bucket" {
+  statement_id = "AllowExecutionFromS3Bucket"
+  action = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.renderer.arn}"
+  principal = "s3.amazonaws.com"
+  source_arn = "${aws_s3_bucket.bucket-raw.arn}"
+}
+
+resource "aws_lambda_function" "renderer" {
+  role = "${aws_iam_role.iam_for_lambda.arn}"
+  function_name = "neversawus_renderer"
+  s3_bucket = "${aws_s3_bucket.bucket-raw.id}"
+  s3_key = "renderer"
+
+  environment {
+    variables          = {
+      S3_TARGET_BUCKET = "${aws_s3_bucket.bucket-site.id}"
+      S3_ACCESS_KEY    = "${var.env_site_access_key}" # must be provided by environment
+      S3_ACCESS_SECRET = "${var.env_site_secret_key}" # ditto
+    }
+  }
+
+  handler = ""
+  runtime = "provided"
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  bucket = "${aws_s3_bucket.bucket-raw.id}"
+
+  lambda_function {
+    lambda_function_arn = "${aws_lambda_function.renderer.arn}"
+    events = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
+  }
+}
+
+# - - - - - - cloudflare workers below (postprocessing of markdown file)
+
 # This bucket stores a single, well-known object. The object contains the
 # latest build of the cloudflare worker.
 resource "aws_s3_bucket" "cloudflare-workers" {
   bucket = "cloudflare-workers"
-  acl    = "private"
+  acl = "private"
 }
 
 # We pull in that well-known object here.
