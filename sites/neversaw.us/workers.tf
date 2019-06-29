@@ -94,7 +94,8 @@ resource "aws_lambda_function" "renderer" {
     }
   }
 
-  handler = "lib/index.handler"
+  timeout = 10
+  handler = "lib/index.handlers"
   runtime = "nodejs10.x"
 }
 
