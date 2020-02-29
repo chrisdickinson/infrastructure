@@ -2,21 +2,21 @@ variable "domain" {
   default = "neversaw.us"
 }
 
+resource "cloudflare_zone" "neversawus" {
+  zone = var.domain
+}
+
 # zone-wide settings.
 resource "cloudflare_zone_settings_override" "settings" {
-  name = var.domain
+  zone_id = cloudflare_zone.neversawus.id
   settings {
     always_use_https = "on"
   }
 }
 
-resource "cloudflare_zone" "neversawus" {
-  zone = var.domain
-}
-
 resource "cloudflare_record" "neversawus-cname-apex" {
-  domain  = var.domain
   name    = var.domain
+  zone_id = cloudflare_zone.neversawus.id
   value   = "www.neversaw.us.s3-website-us-west-2.amazonaws.com"
   type    = "CNAME"
   ttl     = "1"
@@ -24,7 +24,7 @@ resource "cloudflare_record" "neversawus-cname-apex" {
 }
 
 resource "cloudflare_record" "neversawus-www-cname" {
-  domain  = var.domain
+  zone_id = cloudflare_zone.neversawus.id
   value   = "www.neversaw.us.s3-website-us-west-2.amazonaws.com"
   name    = "www"
   type    = "CNAME"
@@ -33,7 +33,7 @@ resource "cloudflare_record" "neversawus-www-cname" {
 }
 
 resource "cloudflare_record" "neversawus-static-cname" {
-  domain  = var.domain
+  zone_id = cloudflare_zone.neversawus.id
   value   = var.domain
   name    = "static"
   type    = "CNAME"
@@ -42,7 +42,7 @@ resource "cloudflare_record" "neversawus-static-cname" {
 }
 
 resource "cloudflare_record" "neversawus-mx-0" {
-  domain   = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   name     = var.domain
   value    = "aspmx3.googlemail.com"
   priority = 10
@@ -50,7 +50,7 @@ resource "cloudflare_record" "neversawus-mx-0" {
 }
 
 resource "cloudflare_record" "neversawus-mx-1" {
-  domain   = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   name     = var.domain
   value    = "aspmx.l.google.com"
   priority = 1
@@ -58,7 +58,7 @@ resource "cloudflare_record" "neversawus-mx-1" {
 }
 
 resource "cloudflare_record" "neversawus-mx-2" {
-  domain   = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   name     = var.domain
   value    = "aspmx2.googlemail.com"
   priority = 10
@@ -66,7 +66,7 @@ resource "cloudflare_record" "neversawus-mx-2" {
 }
 
 resource "cloudflare_record" "neversawus-mx-3" {
-  domain   = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   name     = var.domain
   value    = "alt2.aspmx.l.google.com"
   priority = 5
@@ -74,7 +74,7 @@ resource "cloudflare_record" "neversawus-mx-3" {
 }
 
 resource "cloudflare_record" "neversawus-mx-4" {
-  domain   = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   name     = var.domain
   value    = "alt1.aspmx.l.google.com"
   priority = 5
@@ -82,7 +82,7 @@ resource "cloudflare_record" "neversawus-mx-4" {
 }
 
 resource "cloudflare_page_rule" "redirect_non_www" {
-  zone     = var.domain
+  zone_id  = cloudflare_zone.neversawus.id
   target   = "${var.domain}/*"
   priority = 1
 

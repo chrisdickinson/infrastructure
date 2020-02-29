@@ -27,23 +27,33 @@ resource "aws_s3_bucket" "cloudflare-workers" {
   acl = "private"
 }
 
-# We pull in that well-known object here.
-data "aws_s3_bucket_object" "cloudflare_worker_script" {
-  bucket = aws_s3_bucket.cloudflare-workers.id
-  key    = "neversawus.js"
+resource "null_resource" "worker" {
+  provisioner "local-exec" {
+    command = "cd files/worker && npm ci && node_modules/.bin/webpack -o ../../dist/worker.js"
+  }
+
+  triggers = {
+    index = base64sha256(file("files/worker/main.js"))
+  }
+}
+
+data "null_data_source" "worker" {
+  inputs = {
+    lambda_exporter_id = null_resource.worker.id
+    output = "dist/worker.js"
+  }
 }
 
 # ...and give it to Cloudflare.
 resource "cloudflare_worker_script" "neversawus_worker" {
-  zone    = var.domain
-  content = data.aws_s3_bucket_object.cloudflare_worker_script.body
+  name    = "neversawus_renderer"
+  content = file(data.null_data_source.worker.outputs["output"])
 }
 
 resource "cloudflare_worker_route" "neversawus_worker_route" {
-  zone       = var.domain
-  pattern    = "www.${var.domain}/*"
-  enabled    = true
-  depends_on = [cloudflare_worker_script.neversawus_worker]
+  zone_id     = cloudflare_zone.neversawus.id
+  pattern     = "www.${var.domain}/*"
+  script_name = cloudflare_worker_script.neversawus_worker.name
 }
 
 # - - - - - - aws lambda (take markdown from "raw" and render to "site")
@@ -80,11 +90,35 @@ resource "aws_lambda_permission" "allow_bucket" {
   source_arn = aws_s3_bucket.bucket-raw.arn
 }
 
+resource "null_resource" "renderer" {
+  provisioner "local-exec" {
+    command = "cd files/renderer && npm ci --only=production"
+  }
+
+  triggers = {
+    index = base64sha256(file("files/renderer/lib/index.js"))
+  }
+}
+
+data "null_data_source" "renderer" {
+  inputs = {
+    lambda_exporter_id = null_resource.renderer.id
+    source_dir = "files/renderer"
+  }
+}
+
+data "archive_file" "renderer" {
+  output_path = "dist/renderer.zip"
+  source_dir  = data.null_data_source.renderer.outputs["source_dir"]
+  type        = "zip"
+}
+
 resource "aws_lambda_function" "renderer" {
   role = aws_iam_role.iam_for_lambda.arn
   function_name = "neversawus_renderer"
-  s3_bucket = aws_s3_bucket.cloudflare-workers.id
-  s3_key = "renderer.zip"
+
+  filename         = data.archive_file.renderer.output_path
+  source_code_hash = data.archive_file.renderer.output_base64sha256
 
   environment {
     variables               = {
@@ -96,7 +130,7 @@ resource "aws_lambda_function" "renderer" {
 
   timeout = 10
   handler = "lib/index.handlers"
-  runtime = "nodejs10.x"
+  runtime = "nodejs12.x"
 }
 
 resource "aws_s3_bucket_notification" "bucket_notification" {
