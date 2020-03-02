@@ -10,8 +10,8 @@ This repository contains terraform configuration for these sites:
 - modules.guide
 - didact.us
 
-The resources and configuration for the sites live in `sites/`, while common
-functionality will be factored out into `modules/`.
+The resources and configuration for the sites live in `terraform/projects/`, while common
+functionality will be factored out into `terraform/modules/`.
 
 ## Setup
 
