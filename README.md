@@ -105,3 +105,8 @@ Example "upload the entire site to S3" command:
 ```
 AWS_DEFAULT_REGION=us-west-2 aws s3 cp . s3://www.unbearablecomics.com/ --recursive --acl public-read
 ```
+
+---
+
+[Ubuntu AMI picker](https://cloud-images.ubuntu.com/locator/ec2/) for very good AMI bbs.
+
