@@ -44,10 +44,14 @@ data "null_data_source" "worker" {
   }
 }
 
+data "local_file" "worker" {
+    filename = "${path.module}/${data.null_data_source.worker.outputs["output"]}"
+}
+
 # ...and give it to Cloudflare.
 resource "cloudflare_worker_script" "neversawus_worker" {
   name    = "neversawus_renderer"
-  content = file(data.null_data_source.worker.outputs["output"])
+  content = data.local_file.worker.content
 }
 
 resource "cloudflare_worker_route" "neversawus_worker_route" {
