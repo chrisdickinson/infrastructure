@@ -1,0 +1,44 @@
+- hosts: all
+  remote_user: ubuntu
+  tasks:
+    - name: Set authorized keys
+      authorized_key:
+        user: "{{ ansible_user_id }}"
+        key: https://github.com/{{ item }}.keys
+      with_items:
+        - "{{ lookup('env', 'GITHUB_USERNAME') }}"
+
+    - name: apt-get update
+      become: true
+      apt:
+        update_cache: yes
+
+    - name: install useful tools
+      become: true
+      apt:
+        pkg:
+          - apt-transport-https
+          - aptitude
+          - htop
+          - jq
+          - postgresql-client
+          - python-apt
+          - python3-pip
+          - redis-tools
+          - silversearcher-ag
+          - sysstat
+          - tree
+          - unzip
+
+    - name: update pip
+      become: true
+      shell: pip3 install --upgrade pip
+
+    - name: update boto3
+      become: true
+      shell: pip3 install --upgrade boto3
+
+    - name: install the aws cli
+      become: true
+      shell: pip3 install --upgrade awscli
+
