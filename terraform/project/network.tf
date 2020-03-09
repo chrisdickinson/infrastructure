@@ -4,7 +4,7 @@ data "local_file" "admin-key" {
 }
 
 resource "aws_key_pair" "admin" {
-  key_name   = "admin"
+  key_name   = "admin-${local.environment}"
   public_key = data.local_file.admin-key.content
 }
 
@@ -122,6 +122,11 @@ resource "aws_security_group" "allow-egress" {
     protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+resource "aws_security_group" "configurable" {
+  name = "configurable"
+  vpc_id = aws_vpc.main.id
 }
 
 /*
