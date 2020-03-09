@@ -1,0 +1,34 @@
+name: deploy
+on:
+  push:
+    branches:
+      - 'deploy/*'
+
+jobs:
+  docker:
+    name: build service
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: npm install
+      run: npm ci --only=production
+
+    - run: cp $(which node) ./node
+
+    - name: tar
+      run: tar cfzv /tmp/output.tar.gz --exclude=.git --exclude=.env --exclude=.github .
+
+    - name: aws s3 cp
+      run: |
+        aws s3 cp \
+          --metadata "service=${GITHUB_REPOSITORY/*\//},actor=$GITHUB_ACTOR,commit=$(git rev-parse HEAD)" \
+          /tmp/output.tar.gz s3://${{ secrets.DEPLOY_BUCKET }}/$(shasum /tmp/output.tar.gz | awk '{print $1}').tar.gz
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
