@@ -9,6 +9,7 @@ jobs:
     name: build service
     runs-on: ubuntu-latest
 
+    # just a test
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
