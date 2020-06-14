@@ -20,6 +20,7 @@ resource "aws_vpc" "main" {
   }
 }
 
+/*
 resource "aws_internet_gateway" "public" {
   vpc_id = aws_vpc.main.id
 }
@@ -129,7 +130,6 @@ resource "aws_security_group" "configurable" {
   vpc_id = aws_vpc.main.id
 }
 
-/*
 resource "aws_instance" "test" {
   ami = "ami-06586557165d235d4"
   key_name = aws_key_pair.admin.key_name

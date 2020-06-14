@@ -39,6 +39,7 @@ data "aws_ami" "consul" {
   }
 }
 
+/*
 module "consul" {
   source = "github.com/hashicorp/terraform-aws-consul//modules/consul-cluster?ref=v0.7.4"
 
@@ -64,7 +65,4 @@ module "consul" {
     aws_security_group.allow-ssh.id
   ]
 }
-
-
-
-
+*/

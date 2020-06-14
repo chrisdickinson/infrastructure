@@ -18,53 +18,51 @@ resource "aws_s3_bucket" "bucket-apocrypha" {
   bucket = "apocrypha.${var.domain}"
   acl    = "private"
 }
-# - - - - - - cloudflare workers below (postprocessing of markdown file)
 
-# This bucket stores a single, well-known object. The object contains the
-# latest build of the cloudflare worker.
-resource "aws_s3_bucket" "cloudflare-workers" {
-  bucket = "cloudflare-workers"
-  acl = "private"
+// boop
+resource "aws_api_gateway_rest_api" "dropbox_handler" {
+  name        = "neversawus_dropbox_handler"
+  description = "Dropbox change event handler - Dispatch to GitHub"
 }
 
-resource "null_resource" "worker" {
-  provisioner "local-exec" {
-    command = "cd files/worker && npm ci && node_modules/.bin/webpack -o ../../dist/worker.js"
-  }
-
-  triggers = {
-    index = base64sha256(file("files/worker/main.js"))
-  }
+resource "aws_api_gateway_resource" "proxy" {
+  rest_api_id = aws_api_gateway_rest_api.dropbox_handler.id
+  parent_id   = aws_api_gateway_rest_api.dropbox_handler.root_resource_id
+  path_part   = "{proxy+}"
 }
 
-data "null_data_source" "worker" {
-  inputs = {
-    lambda_exporter_id = null_resource.worker.id
-    output = "dist/worker.js"
-  }
+resource "aws_api_gateway_method" "proxy" {
+  rest_api_id   = aws_api_gateway_rest_api.dropbox_handler.id
+  resource_id   = aws_api_gateway_resource.proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
 }
 
-data "local_file" "worker" {
-    filename = "${path.module}/${data.null_data_source.worker.outputs["output"]}"
+resource "aws_api_gateway_integration" "lambda" {
+  rest_api_id = aws_api_gateway_rest_api.dropbox_handler.id
+  resource_id = aws_api_gateway_method.proxy.resource_id
+  http_method = aws_api_gateway_method.proxy.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.dropbox_handler.invoke_arn
 }
 
-# ...and give it to Cloudflare.
-resource "cloudflare_worker_script" "neversawus_worker" {
-  name    = "neversawus_renderer"
-  content = data.local_file.worker.content
+resource "aws_api_gateway_method" "proxy_root" {
+  rest_api_id   = aws_api_gateway_rest_api.dropbox_handler.id
+  resource_id   = aws_api_gateway_rest_api.dropbox_handler.root_resource_id
+  http_method   = "ANY"
+  authorization = "NONE"
 }
 
-resource "cloudflare_worker_route" "neversawus_worker_route" {
-  zone_id     = cloudflare_zone.neversawus.id
-  pattern     = "www.${var.domain}/*"
-  script_name = cloudflare_worker_script.neversawus_worker.name
-}
+resource "aws_api_gateway_integration" "lambda_root" {
+  rest_api_id = aws_api_gateway_rest_api.dropbox_handler.id
+  resource_id = aws_api_gateway_method.proxy_root.resource_id
+  http_method = aws_api_gateway_method.proxy_root.http_method
 
-# - - - - - - aws lambda (take markdown from "raw" and render to "site")
-
-resource "aws_s3_bucket" "bucket-raw" {
-  bucket = "raw.${var.domain}"
-  acl    = "private"
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.dropbox_handler.invoke_arn
 }
 
 resource "aws_iam_role" "iam_for_lambda" {
@@ -86,49 +84,54 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
-resource "aws_lambda_permission" "allow_bucket" {
-  statement_id = "AllowExecutionFromS3Bucket"
-  action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.renderer.arn
-  principal = "s3.amazonaws.com"
-  source_arn = aws_s3_bucket.bucket-raw.arn
+resource "aws_lambda_permission" "allow_api_gateway" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.dropbox_handler.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  # The "/*/*" portion grants access from any method on any resource
+  # within the API Gateway REST API.
+  source_arn = "${aws_api_gateway_rest_api.dropbox_handler.execution_arn}/*/*"
 }
 
-resource "null_resource" "renderer" {
+resource "null_resource" "dropbox_handler" {
   provisioner "local-exec" {
-    command = "cd files/renderer && npm ci --only=production"
+    command = "cd files/dropbox_handler && npm ci --only=production"
   }
 
   triggers = {
-    index = base64sha256(file("files/renderer/lib/index.js"))
+    index = base64sha256(file("files/dropbox_handler/lib/index.js"))
   }
 }
 
-data "null_data_source" "renderer" {
+data "null_data_source" "dropbox_handler" {
   inputs = {
-    lambda_exporter_id = null_resource.renderer.id
-    source_dir = "files/renderer"
+    lambda_exporter_id = null_resource.dropbox_handler.id
+    source_dir = "files/dropbox_handler"
   }
 }
 
-data "archive_file" "renderer" {
-  output_path = "dist/renderer.zip"
-  source_dir  = data.null_data_source.renderer.outputs["source_dir"]
+data "archive_file" "dropbox_handler" {
+  output_path = "dist/dropbox_handler.zip"
+  source_dir  = data.null_data_source.dropbox_handler.outputs["source_dir"]
   type        = "zip"
 }
 
-resource "aws_lambda_function" "renderer" {
-  role = aws_iam_role.iam_for_lambda.arn
-  function_name = "neversawus_renderer"
+variable "github_token" {
+  type = string
+}
 
-  filename         = data.archive_file.renderer.output_path
-  source_code_hash = data.archive_file.renderer.output_base64sha256
+resource "aws_lambda_function" "dropbox_handler" {
+  role = aws_iam_role.iam_for_lambda.arn
+  function_name = "neversawus_dropbox_handler"
+
+  filename         = data.archive_file.dropbox_handler.output_path
+  source_code_hash = data.archive_file.dropbox_handler.output_base64sha256
 
   environment {
-    variables               = {
-      S3_DESTINATION_BUCKET = aws_s3_bucket.bucket-site.id
-      S3_ACCESS_KEY         = var.site_access_key # must be provided by environment
-      S3_SECRET_KEY         = var.site_secret_key # ditto
+    variables = {
+      GITHUB_TOKEN = var.github_token
     }
   }
 
@@ -137,12 +140,16 @@ resource "aws_lambda_function" "renderer" {
   runtime = "nodejs12.x"
 }
 
-resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = aws_s3_bucket.bucket-raw.id
+resource "aws_api_gateway_deployment" "dropbox_handler" {
+  depends_on = [
+    aws_api_gateway_integration.lambda,
+    aws_api_gateway_integration.lambda_root,
+  ]
 
-  lambda_function {
-    lambda_function_arn = aws_lambda_function.renderer.arn
-    events = ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"]
-  }
+  rest_api_id = aws_api_gateway_rest_api.dropbox_handler.id
+  stage_name  = "test"
 }
 
+output "base_url" {
+  value = aws_api_gateway_deployment.dropbox_handler.invoke_url
+}
