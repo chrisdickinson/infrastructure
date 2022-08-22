@@ -1,11 +1,22 @@
 resource "aws_s3_bucket" "boltzmann" {
   bucket = "www.boltzmann.dev"
-  acl    = "public-read"
+}
 
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
+resource "aws_s3_bucket_website_configuration" "boltzmann" {
+  bucket = aws_s3_bucket.boltzmann.bucket
+
+  index_document {
+    suffix = "index.html"
   }
+
+  error_document {
+    key = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_acl" "boltzmann" {
+  bucket = aws_s3_bucket.boltzmann.id
+  acl    = "public-read"
 }
 
 resource "aws_iam_user" "boltzmann" {
@@ -49,4 +60,5 @@ output "boltzmann_access_key_id" {
 
 output "boltzmann_access_secret_key" {
   value = aws_iam_access_key.boltzmann.secret
+  sensitive = true
 }

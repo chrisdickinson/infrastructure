@@ -26,12 +26,23 @@ resource "cloudflare_record" "unbearablecomics-www-cname" {
 
 resource "aws_s3_bucket" "unbearable-bucket-site" {
   bucket = "www.unbearablecomics.com"
-  acl    = "public-read"
+}
 
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
+resource "aws_s3_bucket_website_configuration" "unbearable-bucket-site" {
+  bucket = aws_s3_bucket.unbearable-bucket-site.bucket
+
+  index_document {
+    suffix = "index.html"
   }
+
+  error_document {
+    key = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_acl" "unbearable-bucket-site" {
+  bucket = aws_s3_bucket.unbearable-bucket-site.id
+  acl    = "public-read"
 }
 
 resource "cloudflare_zone_settings_override" "ub_settings" {

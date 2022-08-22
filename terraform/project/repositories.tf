@@ -1,7 +1,3 @@
-provider "github" {
-  organization = "chrisdickinson"
-}
-
 data "github_repositories" "deployable" {
   query = "org:chrisdickinson topic:deployable"
 }

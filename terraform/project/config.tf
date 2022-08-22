@@ -17,13 +17,8 @@ variable "site_access_key" {
 variable "site_secret_key" {
 }
 
-provider "cloudflare" {
-}
-
-provider "aws" {
-  region = "us-west-2"
-}
-
+/*
+// TODO: this no longer finds a suitable AMI; this'll take more rewriting!
 data "aws_ami" "consul" {
   most_recent = true
   owners      = ["self"]
@@ -39,7 +34,6 @@ data "aws_ami" "consul" {
   }
 }
 
-/*
 module "consul" {
   source = "github.com/hashicorp/terraform-aws-consul//modules/consul-cluster?ref=v0.7.4"
 

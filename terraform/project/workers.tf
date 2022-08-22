@@ -6,16 +6,31 @@
 # mode.
 resource "aws_s3_bucket" "bucket-site" {
   bucket = "www.${var.domain}"
-  acl    = "public-read"
+}
 
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
+resource "aws_s3_bucket_website_configuration" "bucket-site" {
+  bucket = aws_s3_bucket.bucket-site.bucket
+
+  index_document {
+    suffix = "index.html"
   }
+
+  error_document {
+    key = "error.html"
+  }
+}
+
+resource "aws_s3_bucket_acl" "bucket-site" {
+  bucket = aws_s3_bucket.bucket-site.id
+  acl    = "public-read"
 }
 
 resource "aws_s3_bucket" "bucket-apocrypha" {
   bucket = "apocrypha.${var.domain}"
+}
+
+resource "aws_s3_bucket_acl" "bucket-apocrypha" {
+  bucket = aws_s3_bucket.bucket-apocrypha.id
   acl    = "private"
 }
 
@@ -97,7 +112,12 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 
 resource "null_resource" "dropbox_handler" {
   provisioner "local-exec" {
-    command = "cd files/dropbox_handler && npm ci --only=production"
+    command = <<EOF
+      rm -f dist/dropbox_handler.zip
+      cd files/dropbox_handler
+      npm ci --only=production
+      cd ../..
+    EOF
   }
 
   triggers = {
@@ -105,21 +125,12 @@ resource "null_resource" "dropbox_handler" {
   }
 }
 
-data "null_data_source" "dropbox_handler" {
-  inputs = {
-    lambda_exporter_id = null_resource.dropbox_handler.id
-    source_dir = "files/dropbox_handler"
-  }
-}
-
 data "archive_file" "dropbox_handler" {
   output_path = "dist/dropbox_handler.zip"
-  source_dir  = data.null_data_source.dropbox_handler.outputs["source_dir"]
+  source_dir  = "files/dropbox_handler"
   type        = "zip"
-}
 
-variable "github_token" {
-  type = string
+  depends_on = [null_resource.dropbox_handler]
 }
 
 resource "aws_lambda_function" "dropbox_handler" {
@@ -137,7 +148,7 @@ resource "aws_lambda_function" "dropbox_handler" {
 
   timeout = 10
   handler = "lib/index.handlers"
-  runtime = "nodejs12.x"
+  runtime = "nodejs16.x"
 }
 
 resource "aws_api_gateway_deployment" "dropbox_handler" {
