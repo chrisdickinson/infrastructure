@@ -34,6 +34,15 @@ resource "aws_s3_bucket_acl" "bucket-apocrypha" {
   acl    = "private"
 }
 
+resource "aws_s3_bucket_public_access_block" "bucket-apocrypha" {
+  bucket = aws_s3_bucket.bucket-apocrypha.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 // boop
 resource "aws_api_gateway_rest_api" "dropbox_handler" {
   name        = "neversawus_dropbox_handler"
