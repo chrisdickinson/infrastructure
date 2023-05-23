@@ -32,6 +32,14 @@ resource "cloudflare_record" "neversawus-www-cname" {
   proxied = true
 }
 
+resource "cloudflare_record" "neversawus-atproto-txt" {
+  zone_id = cloudflare_zone.neversawus.id
+  value   = "did=did:plc:tajnftpuqi2knlzw5qhssm2v"
+  name    = "_atproto.neversaw.us"
+  type    = "TXT"
+  ttl     = "1"
+}
+
 resource "cloudflare_record" "neversawus-static-cname" {
   zone_id = cloudflare_zone.neversawus.id
   value   = var.domain
